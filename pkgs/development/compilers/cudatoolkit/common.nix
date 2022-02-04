@@ -225,6 +225,9 @@ stdenv.mkDerivation rec {
   # --force-rpath prevents changing RPATH (set above) to RUNPATH.
   postFixup = ''
     addOpenGLRunpath --force-rpath {$out,$lib}/lib/lib*.so
+
+    # TODO move to anduril overlay/override: Some build systems look for libcuda.so.1 expliticly:
+    ln -s $out/lib/stubs/libcuda.so $out/lib/stubs/libcuda.so.1
   '' + lib.optionalString (lib.versionAtLeast version "11") ''
     addOpenGLRunpath $out/cuda_sanitizer_api/compute-sanitizer/*
     addOpenGLRunpath $out/cuda_sanitizer_api/compute-sanitizer/x86/*
