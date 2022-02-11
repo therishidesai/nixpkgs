@@ -14443,9 +14443,11 @@ with pkgs;
 
   pythonInterpreters = callPackage ./../development/interpreters/python { };
   inherit (pythonInterpreters) python27 python37 python38 python39 python310 python311 python3Minimal pypy27 pypy38 pypy37 rustpython;
+  inherit (pythonInterpreters) python36; # Anduril still needs this
 
   # Python package sets.
   python27Packages = python27.pkgs;
+  python36Packages = python36.pkgs; # Anduril still needs this...
   python37Packages = python37.pkgs;
   python38Packages = python38.pkgs;
   python39Packages = recurseIntoAttrs python39.pkgs;

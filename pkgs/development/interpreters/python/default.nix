@@ -155,6 +155,19 @@ in {
     inherit passthruFun;
   };
 
+  python36 = callPackage ./cpython {
+    self = python36;
+    sourceVersion = {
+      major = "3";
+      minor = "6";
+      patch = "14";
+      suffix = "";
+    };
+    sha256 = "1bnm0bx7xf1jpfm0bmzlq19vwm0bvcbl7klx4rvgq05xryhafqr6";
+    inherit (darwin) configd;
+    inherit passthruFun;
+  };
+
   python37 = callPackage ./cpython {
     self = python37;
     sourceVersion = {
