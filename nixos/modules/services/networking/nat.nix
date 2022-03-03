@@ -96,6 +96,19 @@ let
     ip46tables -w -t nat -N nixos-nat-post
     ip46tables -w -t nat -N nixos-nat-out
 
+    # Anduril change: The combination of nf_tables plus the jetpack 4.5 kernel
+    # (currently 4.9.140) breaks nat.service. The jump rules below will fail
+    # when they are added after the nixos-nat-* chains have already had rules
+    # inserted in them. Somehow, it does work if you add these jumps before
+    # adding the rules to the chains.
+    # This tailscale issue is likely related:
+    # https://github.com/tailscale/tailscale/commit/f69003fd4649cf7409c6f75feaf4e6941bae39bf
+
+    # Append our chains to the nat tables
+    ip46tables -w -t nat -A PREROUTING -j nixos-nat-pre
+    ip46tables -w -t nat -A POSTROUTING -j nixos-nat-post
+    ip46tables -w -t nat -A OUTPUT -j nixos-nat-out
+
     ${mkSetupNat {
       iptables = "iptables";
       inherit dest;
@@ -117,11 +130,6 @@ let
     ''}
 
     ${cfg.extraCommands}
-
-    # Append our chains to the nat tables
-    ip46tables -w -t nat -A PREROUTING -j nixos-nat-pre
-    ip46tables -w -t nat -A POSTROUTING -j nixos-nat-post
-    ip46tables -w -t nat -A OUTPUT -j nixos-nat-out
   '';
 
 in
