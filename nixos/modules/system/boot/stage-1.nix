@@ -22,7 +22,8 @@ let
     rootModules = config.boot.initrd.availableKernelModules ++ config.boot.initrd.kernelModules;
     kernel = modulesTree;
     firmware = firmware;
-    allowMissing = false;
+    # Anduril change. travis: Investigate this...
+    allowMissing = true;
   };
 
 

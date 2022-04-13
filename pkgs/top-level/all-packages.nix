@@ -34193,6 +34193,7 @@ with pkgs;
     configuration:
       let
         c = import (path + "/nixos/lib/eval-config.nix") {
+              # Anduril change. travis: we must pass pkgs here to get the right impure overlays
               inherit (stdenv.hostPlatform) system;
               modules =
                 [(

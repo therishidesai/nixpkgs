@@ -29,9 +29,10 @@ stdenv.mkDerivation rec {
 
   outputs = [ "out" "man" ];
 
-  postInstall = ''
-    rm -rf $out/include/linux/i2c-dev.h # conflics with kernel headers
-  '';
+  # Anduril change: travis: Why remove these? We need them...
+  # postInstall = ''
+  #   rm -rf $out/include/linux/i2c-dev.h # conflics with kernel headers
+  # '';
 
   meta = with lib; {
     description = "Set of I2C tools for Linux";
