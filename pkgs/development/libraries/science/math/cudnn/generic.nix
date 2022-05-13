@@ -21,8 +21,8 @@
 
 { fullVersion
 , url
-, hash ? null
-, sha256 ? null
+, hash ? ""
+, sha256 ? ""
 , supportedCudaVersions ? [ ]
 }:
 
