@@ -20,7 +20,7 @@ buildPythonPackage rec {
     rev = "v${version}";
     hash = "sha256-JGjUNBEMuICsaClQGDSGX4qFRjecVKzmpPNRUTvfwho=";
   };
- 
+
   propagatedBuildInputs = [
     text-unidecode
     unidecode
