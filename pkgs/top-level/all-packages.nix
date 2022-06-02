@@ -4595,8 +4595,6 @@ with pkgs;
     protobuf = protobuf3_19;
   };
 
-  clementineUnfree = clementine.unfree;
-
   mellowplayer = libsForQt5.callPackage ../applications/audio/mellowplayer { };
 
   ciopfs = callPackage ../tools/filesystems/ciopfs { };
@@ -27724,9 +27722,10 @@ with pkgs;
     boost = boost175;
   };
 
-  libreoffice = if stdenv.isDarwin
-    then callPackage ../applications/office/libreoffice/darwin.nix {}
-    else hiPrio libreoffice-still;
+  libreoffice-bin = callPackage ../applications/office/libreoffice/darwin { };
+
+  libreoffice = hiPrio libreoffice-still;
+
   libreoffice-unwrapped = (hiPrio libreoffice-still).libreoffice;
 
   libreoffice-args = {
@@ -27904,7 +27903,9 @@ with pkgs;
 
   magic-wormhole = with python3Packages; toPythonApplication magic-wormhole;
 
-  magic-wormhole-rs = callPackage ../tools/networking/magic-wormhole-rs/default.nix { };
+  magic-wormhole-rs = callPackage ../tools/networking/magic-wormhole-rs {
+    inherit (darwin.apple_sdk.frameworks) Security AppKit;
+  };
 
   magnetophonDSP = lib.recurseIntoAttrs {
     CharacterCompressor = callPackage ../applications/audio/magnetophonDSP/CharacterCompressor { };
@@ -28153,8 +28154,6 @@ with pkgs;
     mopidy-scrobbler
     mopidy-somafm
     mopidy-soundcloud
-    mopidy-spotify
-    mopidy-spotify-tunigo
     mopidy-subidy
     mopidy-tunein
     mopidy-youtube
@@ -29656,8 +29655,6 @@ with pkgs;
   };
 
   spotify = callPackage ../applications/audio/spotify/wrapper.nix { };
-
-  libspotify = callPackage ../development/libraries/libspotify (config.libspotify or {});
 
   sourcetrail = let
     llvmPackages = llvmPackages_10;
@@ -33293,6 +33290,7 @@ with pkgs;
   keymapviz = callPackage ../tools/misc/keymapviz { };
 
   lean = callPackage ../applications/science/logic/lean {};
+  lean2 = callPackage ../applications/science/logic/lean2 {};
   lean3 = lean;
   elan = callPackage ../applications/science/logic/elan {};
   mathlibtools = with python3Packages; toPythonApplication mathlibtools;
