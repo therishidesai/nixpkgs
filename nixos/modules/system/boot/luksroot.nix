@@ -206,6 +206,20 @@ let
 
     # LUKS
     open_normally() {
+        ${if (dev.keyFiles != null) then ''
+            keyFiles=${builtins.concatStringsSep " " dev.keyFiles}
+            for key in $keyFiles; do
+                if wait_target "key file" ${dev.keyFile}; then
+                   open=$(${csopen} --key-file=${dev.keyFile} \
+                           ${optionalString (dev.keyFileSize != null) "--keyfile-size=${toString dev.keyFileSize}"} \
+                           ${optionalString (dev.keyFileOffset != null) "--keyfile-offset=${toString dev.keyFileOffset}"})
+                   if $open; then
+                      echo "Successfully opened with $key"
+                      return 0
+                   fi
+                fi
+            done
+        ''}
         ${if (dev.keyFile != null) then ''
         if wait_target "key file" ${dev.keyFile}; then
             ${csopen} --key-file=${dev.keyFile} \
@@ -589,6 +603,17 @@ in
             description = ''
               The name of the file (can be a raw device or a partition) that
               should be used as the decryption key for the encrypted device. If
+              not specified, you will be prompted for a passphrase instead.
+            '';
+          };
+
+          keyFiles = mkOption {
+            default = null;
+            example = [ "/dev/sdb1" "/dev/sdc1" ];
+            type = types.nullOr types.list;
+            description = ''
+              The names of the files (can be a raw device or a partition) that
+              can be used as the decryption key for the encrypted device. If
               not specified, you will be prompted for a passphrase instead.
             '';
           };
