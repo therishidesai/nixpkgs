@@ -59,8 +59,8 @@ in {
     # Choose boot-luks specialisation
     machine.wait_for_console_text("GNU GRUB")
     grub_select_boot_luks()
-    machine.send_chars("\n")  # press enter to boot 
-    machine.wait_for_console_text("Linux version")  
+    machine.send_chars("\n")  # press enter to boot
+    machine.wait_for_console_text("Linux version")
 
     # Check if rootfs is on /dev/mapper/cryptroot
     machine.wait_for_unit("multi-user.target")

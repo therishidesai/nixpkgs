@@ -215,7 +215,7 @@ let
               ${optionalString (dev.keyFileOffset != null) "--keyfile-offset=${toString dev.keyFileOffset}"}
             cs_status=$?
             if [ $cs_status -ne 0 ]; then
-               echo "Key File ${dev.keyFile} failed!" 
+               echo "Key File ${dev.keyFile} failed!"
                keyFileFailed=true
             fi
         else
@@ -627,7 +627,7 @@ in
             default = false;
             type = types.bool;
             description = ''
-              If keyFile fails then try an empty passphrase first before 
+              If keyFile fails then try an empty passphrase first before
               prompting for password.
             '';
           };
@@ -637,7 +637,7 @@ in
             example = 5;
             type = types.nullOr types.int;
             description = ''
-              The amount of time in seconds for a keyFile to appear before 
+              The amount of time in seconds for a keyFile to appear before
               timing out and trying passwords. This is required if tryEmptyPassphrase
               is enabled and systemd in initrd is enabled.
             '';
