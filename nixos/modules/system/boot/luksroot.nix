@@ -206,34 +206,46 @@ let
 
     # LUKS
     open_normally() {
-        ${if (dev.keyFiles != null) then ''
-            keyFiles="${builtins.concatStringsSep " " dev.keyFiles}"
-            for key in $keyFiles; do
-                if wait_target "key file" $key; then
-                   ${csopen} --key-file=$key \
-                       ${optionalString (dev.keyFileSize != null) "--keyfile-size=${toString dev.keyFileSize}"} \
-                       ${optionalString (dev.keyFileOffset != null) "--keyfile-offset=${toString dev.keyFileOffset}"}
-                   cs_status=$?
-                   if [ $cs_status -eq 0 ]; then
-                      echo "Successfully opened with $key"
-                      return 0
-                   fi
-                fi
-            done
-        '' else '' ''}
+        keyFileFailed=false
+        keyFileNotFound=false
         ${if (dev.keyFile != null) then ''
         if wait_target "key file" ${dev.keyFile}; then
             ${csopen} --key-file=${dev.keyFile} \
               ${optionalString (dev.keyFileSize != null) "--keyfile-size=${toString dev.keyFileSize}"} \
               ${optionalString (dev.keyFileOffset != null) "--keyfile-offset=${toString dev.keyFileOffset}"}
+            cs_status=$?
+            if [ $cs_status -ne 0 ]; then
+               echo "Key File ${dev.keyFile} failed!" 
+               keyFileFailed=true
+            fi
         else
-            ${if dev.fallbackToPassword then "echo" else "die"} "${dev.keyFile} is unavailable"
-            echo " - failing back to interactive password prompt"
-            do_open_passphrase
+            keyFileNotFound=true
         fi
         '' else ''
-        do_open_passphrase
+           keyFileFailed=true
         ''}
+
+        if [ "$keyFileFailed" = true ]; then
+            ${if (dev.tryEmptyPassphrase) then ''
+                 echo "" | ${csopen}
+                 cs_status=$?
+                 if [ $cs_status -eq 0 ]; then
+                    echo "Empty passphrase succeeded"
+                 else
+                    if [ "$keyFileNotFound" = true ]; then
+                       ${if dev.fallbackToPassword then "echo" else "die"} "${dev.keyFile} is unavailable"
+                       echo " - failing back to interactive password prompt"
+                    fi
+                    do_open_passphrase
+                 fi
+            '' else ''
+                 if [ "$keyFileNotFound" = true ]; then
+                    ${if dev.fallbackToPassword then "echo" else "die"} "${dev.keyFile} is unavailable"
+                    echo " - failing back to interactive password prompt"
+                 fi
+                 do_open_passphrase
+            ''}
+        fi
     }
 
     ${optionalString (luks.yubikeySupport && (dev.yubikey != null)) ''
@@ -490,6 +502,7 @@ let
   preLVM = filterAttrs (n: v: v.preLVM) luks.devices;
   postLVM = filterAttrs (n: v: !v.preLVM) luks.devices;
 
+
   stage1Crypttab = pkgs.writeText "initrd-crypttab" (lib.concatStringsSep "\n" (lib.mapAttrsToList (n: v: let
     opts = v.crypttabExtraOpts
       ++ optional v.allowDiscards "discard"
@@ -497,6 +510,8 @@ let
       ++ optional (v.header != null) "header=${v.header}"
       ++ optional (v.keyFileOffset != null) "keyfile-offset=${v.keyFileOffset}"
       ++ optional (v.keyFileSize != null) "keyfile-size=${v.keyFileSize}"
+      ++ optional (v.keyFileTimeout != null) "keyfile-timeout=${builtins.toString v.keyFileTimeout}s"
+      ++ optional (v.tryEmptyPassphrase) "try-empty-password=true"
     ;
   in "${n} ${v.device} ${if v.keyFile == null then "-" else v.keyFile} ${lib.concatStringsSep "," opts}") luks.devices));
 
@@ -608,14 +623,23 @@ in
             '';
           };
 
-          keyFiles = mkOption {
-            default = null;
-            example = [ "/dev/sdb1" "/dev/sdc1" ];
-            type = types.nullOr (types.listOf types.str);
+          tryEmptyPassphrase = mkOption {
+            default = false;
+            type = types.bool;
             description = ''
-              The names of the files (can be a raw device or a partition) that
-              can be used as the decryption key for the encrypted device. If
-              not specified, you will be prompted for a passphrase instead.
+              If keyFile fails then try an empty passphrase first before 
+              prompting for password.
+            '';
+          };
+
+          keyFileTimeout = mkOption {
+            default = null;
+            example = 5;
+            type = types.nullOr types.int;
+            description = ''
+              The amount of time in seconds for a keyFile to appear before 
+              timing out and trying passwords. This is required if tryEmptyPassphrase
+              is enabled and systemd in initrd is enabled.
             '';
           };
 
@@ -905,6 +929,9 @@ in
 
         { assertion = config.boot.initrd.systemd.enable -> all (dev: !dev.fallbackToPassword) (attrValues luks.devices);
           message = "boot.initrd.luks.devices.<name>.fallbackToPassword is implied by systemd stage 1.";
+        }
+        { assertion = config.boot.initrd.systemd.enable -> all (dev: dev.tryEmptyPassphrase && dev.keyFileTimeout != null) (attrValues luks.devices);
+          message = "boot.initrd.luks.devices.<name>.tryEmptyPassphrase requires boot.initrd.luks.device.<name>.keyFileTimeout to be set";
         }
         { assertion = config.boot.initrd.systemd.enable -> all (dev: dev.preLVM) (attrValues luks.devices);
           message = "boot.initrd.luks.devices.<name>.preLVM is not used by systemd stage 1.";

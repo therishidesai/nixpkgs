@@ -6,63 +6,51 @@ import ./make-test-python.nix ({ lib, pkgs, ... }: let
     FllUkMD5oqjOR/YcboxG8Z3B5sJuvTP9llsF+gnuveWih9dpbBr7AgEC
   '';
 
-  emptykey = pkgs.writeText "empty-keyfile" '''';
 in {
-  name = "initrd-luks-multiple-keyfiles";
+  name = "systemd-initrd-luks-empty-passphrase";
 
   nodes.machine = { pkgs, ... }: {
+    # Use systemd-boot
     virtualisation = {
       emptyDiskImages = [ 512 ];
       useBootLoader = true;
+      useEFIBoot = true;
     };
-    boot.loader.systemd-boot.enable = false;
-    boot.loader.grub = {
-      enable = true;
-      extraConfig = "serial; terminal_output serial";
-    };
+    boot.loader.systemd-boot.enable = true;
 
     environment.systemPackages = with pkgs; [ cryptsetup ];
+    boot.initrd.systemd = {
+      enable = true;
+      emergencyAccess = true;
+    };
 
     specialisation.boot-luks.configuration = {
       boot.initrd.luks.devices = lib.mkVMOverride {
         cryptroot = {
           device = "/dev/vdc";
-          keyFiles = [ "/etc/empty.key" "/etc/cryptroot.key" ];
+          keyFile = "/etc/cryptroot.key";
+          tryEmptyPassphrase = true;
+          keyFileTimeout = 5;
         };
       };
       virtualisation.bootDevice = "/dev/mapper/cryptroot";
       boot.initrd.secrets."/etc/cryptroot.key" = keyfile;
-      boot.initrd.secrets."/etc/empty.key" = emptykey;
     };
   };
 
   testScript = ''
-    # Encrypt key with keyfile but boot should try empty keyfile first and then use real keyfile
-
-
-    def grub_select_boot_luks():
-        """
-        Selects "boot-luks" from the GRUB menu
-        to trigger a login request.
-        """
-        machine.send_monitor_command("sendkey down")
-        machine.send_monitor_command("sendkey ret")
+    # Encrypt key with empty key so boot should try keyfile and then fallback to empty passphrase
 
     # Create encrypted volume
     machine.wait_for_unit("multi-user.target")
-    machine.succeed("cryptsetup luksFormat -q --iter-time=1 -d ${keyfile} /dev/vdc")
+    machine.succeed("echo "" | cryptsetup luksFormat /dev/vdc --batch-mode")
+
+    # Boot from the encrypted disk
+    machine.succeed("bootctl set-default nixos-generation-1-specialisation-boot-luks.conf")
+    machine.succeed("sync")
     machine.crash()
 
     # Boot and decrypt the disk
-    machine.start()
-
-    # Choose boot-luks specialisation
-    machine.wait_for_console_text("GNU GRUB")
-    grub_select_boot_luks()
-    machine.send_chars("\n")  # press enter to boot 
-    machine.wait_for_console_text("Linux version")  
-
-    # Check if rootfs is on /dev/mapper/cryptroot
     machine.wait_for_unit("multi-user.target")
     assert "/dev/mapper/cryptroot on / type ext4" in machine.succeed("mount")
   '';
