@@ -206,8 +206,7 @@ let
 
     # LUKS
     open_normally() {
-        keyFileFailed=false
-        keyFileNotFound=false
+        keyFileFailed=true
         ${if (dev.keyFile != null) then ''
         if wait_target "key file" ${dev.keyFile}; then
             ${csopen} --key-file=${dev.keyFile} \
@@ -216,34 +215,36 @@ let
             cs_status=$?
             if [ $cs_status -ne 0 ]; then
                echo "Key File ${dev.keyFile} failed!"
-               keyFileFailed=true
+            else
+               keyFileFailed=false
             fi
         else
-            keyFileNotFound=true
+            echo "Key file not found!"
         fi
         '' else ''
-           keyFileFailed=true
+           echo "No key file given"
         ''}
 
         if [ "$keyFileFailed" = true ]; then
             ${if (dev.tryEmptyPassphrase) then ''
+                 echo "Trying empty passphrase!"
                  echo "" | ${csopen}
                  cs_status=$?
                  if [ $cs_status -eq 0 ]; then
                     echo "Empty passphrase succeeded"
                  else
-                    if [ "$keyFileNotFound" = true ]; then
-                       ${if dev.fallbackToPassword then "echo" else "die"} "${dev.keyFile} is unavailable"
-                       echo " - failing back to interactive password prompt"
-                    fi
-                    do_open_passphrase
+                    ${if dev.fallbackToPassword then ''
+                      echo "${dev.keyFile} is unavailable and empty passphrase failed"
+                      echo " - falling back to interactive password prompt"
+                      do_open_passphrase
+                    '' else "die"}
                  fi
             '' else ''
-                 if [ "$keyFileNotFound" = true ]; then
-                    ${if dev.fallbackToPassword then "echo" else "die"} "${dev.keyFile} is unavailable"
-                    echo " - failing back to interactive password prompt"
-                 fi
-                 do_open_passphrase
+                 ${if dev.fallbackToPassword then ''
+                      echo "${dev.keyFile} is unavailable"
+                      echo " - falling back to interactive password prompt"
+                      do_open_passphrase
+                 '' else "die"}
             ''}
         fi
     }
