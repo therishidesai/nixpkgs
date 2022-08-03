@@ -225,10 +225,10 @@ in
         startAt = optional cfg.autoPrune.enable cfg.autoPrune.dates;
       };
 
-      assertions = [
-        { assertion = cfg.enableNvidia -> config.hardware.opengl.driSupport32Bit or false;
-          message = "Option enableNvidia requires 32bit support libraries";
-        }];
+      # assertions = [
+      #   { assertion = cfg.enableNvidia -> config.hardware.opengl.driSupport32Bit or false;
+      #     message = "Option enableNvidia requires 32bit support libraries";
+      #   }];
 
       virtualisation.docker.daemon.settings = {
         group = "docker";

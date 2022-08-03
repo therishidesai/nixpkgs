@@ -125,14 +125,14 @@ in
 
   config = mkIf cfg.enable {
 
-    # assertions = [
-    #   { assertion = cfg.driSupport32Bit -> pkgs.stdenv.isx86_64;
-    #     message = "Option driSupport32Bit only makes sense on a 64-bit system.";
-    #   }
-    #   { assertion = cfg.driSupport32Bit -> (config.boot.kernelPackages.kernel.features.ia32Emulation or false);
-    #     message = "Option driSupport32Bit requires a kernel that supports 32bit emulation";
-    #   }
-    # ];
+    assertions = [
+      { assertion = cfg.driSupport32Bit -> pkgs.stdenv.isx86_64;
+        message = "Option driSupport32Bit only makes sense on a 64-bit system.";
+      }
+      { assertion = cfg.driSupport32Bit -> (config.boot.kernelPackages.kernel.features.ia32Emulation or false);
+        message = "Option driSupport32Bit requires a kernel that supports 32bit emulation";
+      }
+    ];
 
     systemd.tmpfiles.rules = [
       "L+ /run/opengl-driver - - - - ${package}"
